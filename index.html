@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>ExpenseMan - Business Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Mobile-first responsive design */
+    * {
+      box-sizing: border-box;
+    }
+    
+    /* Safe area support for mobile devices */
+    .safe-area-inset-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    /* Prevent zoom on input focus on iOS */
+    input, select, textarea {
+      font-size: 16px;
+    }
+    
+    /* Custom scrollbar for a more polished look */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    html.dark ::-webkit-scrollbar-track {
+      background: #1f2937; /* bg-gray-800 */
+    }
+    html.light ::-webkit-scrollbar-track {
+      background: #f3f4f6; /* bg-gray-100 */
+    }
+    html.dark ::-webkit-scrollbar-thumb {
+      background: #4b5563; /* bg-gray-600 */
+      border-radius: 4px;
+    }
+     html.light ::-webkit-scrollbar-thumb {
+      background: #9ca3af; /* bg-gray-400 */
+      border-radius: 4px;
+    }
+    html.dark ::-webkit-scrollbar-thumb:hover {
+      background: #6b7280; /* bg-gray-500 */
+    }
+    html.light ::-webkit-scrollbar-thumb:hover {
+      background: #6b7280; /* bg-gray-500 */
+    }
+    /* Markdown Content Styles */
+    .markdown-content p:last-child {
+        margin-bottom: 0;
+    }
+    .markdown-content pre {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+        font-family: monospace;
+        font-size: 0.9em;
+        border: 1px solid;
+    }
+    .markdown-content code {
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.25rem;
+        font-size: 0.9em;
+    }
+    .markdown-content pre code {
+        background-color: transparent;
+        padding: 0;
+        font-size: 1em;
+        border: none;
+    }
+    .markdown-content ul, .markdown-content ol {
+        padding-left: 1.5rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .markdown-content ul {
+        list-style-type: disc;
+    }
+    .markdown-content ol {
+        list-style-type: decimal;
+    }
+    .markdown-content li {
+        margin-bottom: 0.25rem;
+    }
+    .markdown-content blockquote {
+        border-left-width: 4px;
+        padding-left: 1rem;
+        margin-left: 0;
+    }
+
+    /* Light theme */
+    html.light .markdown-content pre {
+        background-color: #f3f4f6; /* gray-100 */
+        color: #1f2937; /* gray-800 */
+        border-color: #e5e7eb; /* gray-200 */
+    }
+    html.light .markdown-content code {
+        background-color: #e5e7eb; /* gray-200 */
+        color: #111827; /* gray-900 */
+    }
+    html.light .markdown-content blockquote {
+        border-color: #d1d5db; /* border-gray-300 */
+        color: #4b5563; /* text-gray-600 */
+    }
+
+    /* Dark theme */
+    html.dark .markdown-content pre {
+        background-color: #111827; /* gray-900 */
+        color: #d1d5db; /* gray-300 */
+        border-color: #374151; /* gray-700 */
+    }
+    html.dark .markdown-content code {
+        background-color: #374151; /* gray-700 */
+        color: #f3f4f6; /* gray-100 */
+    }
+     html.dark .markdown-content blockquote {
+        border-color: #4b5563; /* border-gray-600 */
+        color: #9ca3af; /* text-gray-400 */
+    }
+
+    /* Dark theme specific overrides for chat bubbles */
+    html.dark .bg-gray-700 .markdown-content pre {
+        background-color: #111827; /* gray-900 */
+    }
+    html.dark .bg-gray-700 .markdown-content code {
+        background-color: #4b5563; /* gray-600 */
+    }
+    html.dark .bg-blue-600 .markdown-content pre {
+        background-color: #1e3a8a; /* darker blue */
+        color: #e0e7ff;
+        border-color: #3b82f6;
+    }
+    html.dark .bg-blue-600 .markdown-content code {
+        background-color: #2563eb; /* slightly different blue */
+    }
+    html.dark .bg-blue-600 .markdown-content, 
+    html.dark .bg-blue-600 .markdown-content p, 
+    html.dark .bg-blue-600 .markdown-content li,
+    html.dark .bg-blue-600 .markdown-content strong,
+    html.dark .bg-blue-600 .markdown-content em {
+        color: white; /* Ensure text is white */
+    }
+    html.dark .bg-blue-600 .markdown-content a {
+        color: #bfdbfe; /* blue-200 for links */
+        text-decoration: underline;
+    }
+  </style>
+</head>
+  <body class="bg-gray-100 dark:bg-gray-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

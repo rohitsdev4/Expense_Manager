@@ -1,0 +1,5 @@
+{
+  "name": "ExpenseMan",
+  "description": "A sophisticated chatbot application powered by Google's Gemini API. It features a standard mode using 'gemini-2.5-flash' for quick responses and a 'Thinking Mode' that leverages 'gemini-2.5-pro' with an enhanced thinking budget for tackling complex queries.",
+  "requestFramePermissions": []
+}
