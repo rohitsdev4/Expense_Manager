@@ -1396,3 +1396,234 @@ const App: React.FC = () => {
 };
 
 export default App;
+import React, { useState, useContext } from 'react';
+import type { Page } from './types';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import Dashboard from './pages/Dashboard';
+import ChatInterface from './components/ChatInterface';
+import PaymentsAndExpensesPage from './pages/PaymentsAndExpensesPage';
+import SitesPage from './pages/SitesPage';
+import LabourPage from './pages/LabourPage';
+import ClientsPage from './pages/ClientsPage';
+import TasksAndHabitsPage from './pages/TasksAndHabitsPage';
+import SettingsPage from './pages/SettingsPage';
+import { DataProvider } from './contexts/DataContext';
+import { SettingsProvider, SettingsContext } from './contexts/SettingsContext';
+import {
+  DashboardIcon,
+  WalletIcon,
+  BuildingIcon,
+  ChecklistIcon,
+  BrainCircuitIcon,
+  HandshakeIcon,
+  MoreVerticalIcon,
+  UsersIcon,
+  SettingsIcon,
+} from './components/icons';
+
+// --- More Menu for mobile ---
+const moreMenuItems: { page: Page; icon: React.FC<React.SVGProps<SVGSVGElement>>; label: string }[] = [
+  { page: 'Payments & Expenses', icon: WalletIcon, label: 'Payments' },
+  { page: 'Clients', icon: HandshakeIcon, label: 'Clients' },
+  { page: 'Sites', icon: BuildingIcon, label: 'Sites' },
+  { page: 'Labour', icon: UsersIcon, label: 'Labour' },
+  { page: 'Tasks & Habits', icon: ChecklistIcon, label: 'Tasks' },
+  { page: 'Settings', icon: SettingsIcon, label: 'Settings' },
+];
+
+interface MoreMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  setActivePage: (page: Page) => void;
+}
+
+const MoreMenu: React.FC<MoreMenuProps> = ({ isOpen, onClose, setActivePage }) => {
+  const handleSelect = (page: Page) => {
+    setActivePage(page);
+    onClose();
+  };
+
+  return (
+    <>
+      {/* Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/60 z-50 md:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+        onClick={onClose} 
+        aria-hidden="true"
+      ></div>
+      
+      {/* Menu Panel */}
+      <div 
+        className={`fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 rounded-t-2xl shadow-2xl z-50 md:hidden transition-transform duration-300 ease-in-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
+      >
+        {/* Grab Handle */}
+        <div className="w-10 h-1.5 bg-gray-600 rounded-full mx-auto my-3"></div>
+
+        {/* Grid Layout for Menu Items */}
+        <ul className="grid grid-cols-3 gap-2 p-4 pb-6">
+          {moreMenuItems.map(item => (
+            <li key={item.page}>
+              <button
+                onClick={() => handleSelect(item.page)}
+                className="w-full flex flex-col items-center justify-center p-3 rounded-xl text-center text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-150 space-y-2"
+              >
+                <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center">
+                    <item.icon className="w-6 h-6 text-gray-400" />
+                </div>
+                <span className="font-medium text-xs text-center">{item.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+};
+
+
+// --- BottomNav for mobile view ---
+const mainBottomNavItems: { page: Page | 'More'; icon: React.FC<React.SVGProps<SVGSVGElement>>; label: string }[] = [
+  { page: 'Dashboard', icon: DashboardIcon, label: 'Dashboard' },
+  { page: 'Chat with AI', icon: BrainCircuitIcon, label: 'AI Chat' },
+  { page: 'More', icon: MoreVerticalIcon, label: 'More' },
+];
+
+interface BottomNavProps {
+  activePage: Page;
+  setActivePage: (page: Page) => void;
+}
+
+const BottomNavLink: React.FC<{
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}> = ({ icon: Icon, label, isActive, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${
+      isActive ? 'text-blue-400' : 'text-gray-400 hover:text-blue-400'
+    }`}
+  >
+    <Icon className="w-6 h-6 mb-1" />
+    <span className={`text-xs ${isActive ? 'font-bold' : ''}`}>{label}</span>
+  </button>
+);
+
+const BottomNav: React.FC<BottomNavProps> = ({ activePage, setActivePage }) => {
+  const [isMoreMenuOpen, setMoreMenuOpen] = useState(false);
+
+  // A page is "active" in the more menu if it's the current page
+  const isMoreActive = moreMenuItems.some(item => item.page === activePage);
+
+  return (
+    <>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-800/95 backdrop-blur-sm border-t border-gray-700 flex justify-around z-40">
+        {mainBottomNavItems.map((item) => {
+           if (item.page === 'More') {
+            return (
+              <BottomNavLink
+                key={item.page}
+                icon={item.icon}
+                label={item.label}
+                isActive={isMoreActive}
+                onClick={() => setMoreMenuOpen(true)}
+              />
+            );
+          }
+          return (
+            <BottomNavLink
+              key={item.page}
+              icon={item.icon}
+              label={item.label}
+              isActive={activePage === item.page}
+              onClick={() => setActivePage(item.page as Page)}
+            />
+          );
+        })}
+      </nav>
+      <MoreMenu
+        isOpen={isMoreMenuOpen}
+        onClose={() => setMoreMenuOpen(false)}
+        setActivePage={setActivePage}
+      />
+    </>
+  );
+};
+// --- End of BottomNav ---
+
+const AppContent: React.FC = () => {
+  const [activePage, setActivePage] = useState<Page>('Dashboard');
+  const { theme } = useContext(SettingsContext);
+
+  const pageTitles: Record<Page, string> = {
+    'Dashboard': 'Dashboard',
+    'Payments & Expenses': 'Financial Management',
+    'Sites': 'Site Management',
+    'Labour': 'Labour Management',
+    'Clients': 'Client Management',
+    'Tasks & Habits': 'Productivity Hub',
+    'Chat with AI': 'PBMS-AI Assistant',
+    'Settings': 'Application Settings',
+  };
+
+  const handleSetPage = (page: Page) => {
+    setActivePage(page);
+  };
+
+  const renderPage = () => {
+    switch (activePage) {
+      case 'Dashboard':
+        return <Dashboard />;
+      case 'Payments & Expenses':
+        return <PaymentsAndExpensesPage />;
+      case 'Sites':
+        return <SitesPage />;
+      case 'Labour':
+        return <LabourPage />;
+      case 'Clients':
+        return <ClientsPage />;
+       case 'Tasks & Habits':
+        return <TasksAndHabitsPage />;
+      case 'Chat with AI':
+        // This case is handled by the special layout below
+        return null;
+      case 'Settings':
+        return <SettingsPage />;
+      default:
+        return <Dashboard />;
+    }
+  };
+  
+  return (
+    <div className="text-gray-800 dark:text-white font-sans min-h-screen md:flex">
+      <Sidebar activePage={activePage} setActivePage={handleSetPage} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header title={pageTitles[activePage]} />
+        <main className="flex-1 overflow-y-auto">
+          {activePage === 'Chat with AI' ? (
+             <div className="h-full bg-gray-200 dark:bg-gray-800 md:rounded-tl-2xl md:border-t md:border-l border-gray-200 dark:border-gray-700">
+               <ChatInterface />
+            </div>
+          ) : (
+            <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 pb-24">
+              {renderPage()}
+            </div>
+          )}
+        </main>
+      </div>
+      <BottomNav activePage={activePage} setActivePage={handleSetPage} />
+    </div>
+  );
+};
+
+const App: React.FC = () => (
+  <SettingsProvider>
+    <DataProvider>
+      <AppContent />
+    </DataProvider>
+  </SettingsProvider>
+);
+
+export default App;
