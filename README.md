@@ -41,12 +41,14 @@ A comprehensive React-based business management application with Google Sheets i
 - Site associations
 - Client communication logs
 
-### ✅ **Tasks & Habits**
+### ✅ **Tasks & Habits** (Local Storage)
 - Task management with priority levels
 - Deadline tracking
 - Habit tracking with streak counters
 - Status monitoring (Pending/In Progress/Completed)
 - Productivity analytics
+- **Offline-first with local storage persistence**
+- **Works without internet connection**
 
 ### 🤖 **AI Assistant**
 - Gemini AI integration for business insights
@@ -63,6 +65,14 @@ A comprehensive React-based business management application with Google Sheets i
 - Error handling and retry mechanisms
 - Connection status monitoring
 - Offline-first approach with local mutations
+
+### 📱 **Progressive Web App (PWA)**
+- **Installable on mobile and desktop**
+- **Offline functionality for tasks and habits**
+- **Service worker for caching**
+- **App-like experience**
+- **Push notification support (future)**
+- **Background sync capabilities**
 
 ### 🎨 **Modern UI/UX**
 - Responsive design (Desktop + Mobile)
@@ -162,6 +172,13 @@ A comprehensive React-based business management application with Google Sheets i
 - Analyze profit trends
 - Receive data-driven recommendations
 
+### PWA Features
+- **Install the app** on your device for quick access
+- **Offline task and habit management** - works without internet
+- **Automatic updates** when new versions are available
+- **App shortcuts** for quick actions
+- **Responsive design** optimized for mobile and desktop
+
 ### Settings
 - Configure Google Sheets connection
 - Set up API credentials
@@ -229,9 +246,13 @@ For support and questions:
 
 ## 🎯 **Roadmap**
 
+- [x] **PWA functionality with offline support**
+- [x] **Local storage for tasks and habits**
+- [x] **Service worker for caching**
+- [x] **Install prompt for mobile/desktop**
 - [ ] Advanced reporting and analytics
 - [ ] Multi-user support
-- [ ] Mobile app version
+- [ ] Push notifications
 - [ ] Integration with accounting software
 - [ ] Advanced AI features
 - [ ] Automated backup and sync

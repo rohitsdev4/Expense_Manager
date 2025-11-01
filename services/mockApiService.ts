@@ -54,8 +54,66 @@ export const laboursApi = createApi<Labour>([]);
 export const clientsApi = createApi<Client>([]);
 // FIX: Add vendorsApi to manage vendor data in memory.
 export const vendorsApi = createApi<Client>([]);
-export const tasksApi = createApi<Task>([]);
-export const habitsApi = createApi<Habit>([]);
+// Local storage keys for tasks and habits
+const TASKS_STORAGE_KEY = 'expenseman-tasks';
+const HABITS_STORAGE_KEY = 'expenseman-habits';
+
+// Enhanced API with localStorage for tasks
+const createLocalStorageApi = <T extends { id: string }>(storageKey: string) => {
+  const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+  
+  const getFromStorage = (): T[] => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error(`Failed to parse ${storageKey} from localStorage`, error);
+      return [];
+    }
+  };
+
+  const saveToStorage = (items: T[]) => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(items));
+    } catch (error) {
+      console.error(`Failed to save ${storageKey} to localStorage`, error);
+    }
+  };
+
+  return {
+    async get(): Promise<T[]> {
+      await delay(50);
+      return Promise.resolve(getFromStorage());
+    },
+    async add(itemData: Omit<T, 'id'>): Promise<T> {
+      await delay(50);
+      const items = getFromStorage();
+      const newItem = { ...itemData, id: String(Date.now() + Math.random()) } as T;
+      items.push(newItem);
+      saveToStorage(items);
+      return Promise.resolve(newItem);
+    },
+    async update(id: string, updates: Partial<T>): Promise<T> {
+      await delay(50);
+      const items = getFromStorage();
+      const index = items.findIndex(i => i.id === id);
+      if (index === -1) throw new Error("Item not found");
+      items[index] = { ...items[index], ...updates };
+      saveToStorage(items);
+      return Promise.resolve(items[index]);
+    },
+    async delete(id: string): Promise<{ id: string }> {
+      await delay(50);
+      const items = getFromStorage();
+      const filteredItems = items.filter(i => i.id !== id);
+      saveToStorage(filteredItems);
+      return Promise.resolve({ id });
+    },
+  };
+};
+
+export const tasksApi = createLocalStorageApi<Task>(TASKS_STORAGE_KEY);
+export const habitsApi = createLocalStorageApi<Habit>(HABITS_STORAGE_KEY);
 export const expenseCategoriesApi = createApi<ExpenseCategory>([]);
 
 // Settings API using localStorage for persistence
@@ -76,7 +134,8 @@ export const settingsApi = {
             theme: 'dark',
             googleSheetUrl: '',
             userName: 'Business Owner',
-            apiKey: '',
+            googleSheetsApiKey: '',
+            aiApiKey: '',
         };
     },
     async update(settings: Partial<Settings>): Promise<Settings> {

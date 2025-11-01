@@ -20,6 +20,7 @@ export interface Payment {
   amount: number;
   mode: 'Cash' | 'Bank Transfer' | 'Cheque';
   remarks?: string;
+  user?: string; // Added user field for tracking who made the entry
 }
 
 export interface Expense {
@@ -28,11 +29,20 @@ export interface Expense {
   category: string;
   amount: number;
   description: string;
+  user?: string; // Added user field for tracking who made the entry
 }
 
 export interface ExpenseCategory {
   id: string;
   name: string;
+}
+
+export interface UserBalance {
+  user: string;
+  totalPayments: number;
+  totalExpenses: number;
+  balance: number;
+  transactionCount: number;
 }
 
 export interface Site {
@@ -45,6 +55,16 @@ export interface Site {
   projectValue: number;
 }
 
+export interface PaymentHistory {
+  id: string;
+  date: string;
+  amount: number;
+  site?: string;
+  task?: string;
+  description: string;
+  user?: string;
+}
+
 export interface Labour {
   id: string;
   name: string;
@@ -52,6 +72,7 @@ export interface Labour {
   salary: number;
   paid: number;
   balance: number;
+  paymentHistory?: PaymentHistory[];
 }
 
 export interface Client {
@@ -61,6 +82,7 @@ export interface Client {
   siteName?: string;
   totalPaid: number;
   balance: number;
+  paymentHistory?: PaymentHistory[];
 }
 
 export interface Task {
@@ -84,5 +106,6 @@ export interface Settings {
     theme: Theme;
     googleSheetUrl: string;
     userName: string;
-    apiKey: string;
+    googleSheetsApiKey: string;  // For Google Sheets API
+    aiApiKey: string;            // For AI Chat (Groq API)
 }

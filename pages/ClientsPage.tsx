@@ -5,7 +5,8 @@ import DataTable from '../components/DataTable';
 import CrudModal, { FormField } from '../components/CrudModal';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import EmptyState from '../components/EmptyState';
-import { PlusIcon, HandshakeIcon, InfoIcon } from '../components/icons';
+import PaymentHistoryModal from '../components/PaymentHistoryModal';
+import { PlusIcon, HandshakeIcon, InfoIcon, HistoryIcon } from '../components/icons';
 
 const ClientsPage: React.FC = () => {
     const { clients, sites, payments, connectionStatus, addClient, updateClient, deleteClient } = useContext(DataContext);
@@ -13,6 +14,7 @@ const ClientsPage: React.FC = () => {
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [deletingClient, setDeletingClient] = useState<Client | null>(null);
+    const [viewingPaymentHistory, setViewingPaymentHistory] = useState<Client | null>(null);
 
     const [isSaveConfirmOpen, setSaveConfirmOpen] = useState(false);
     const [pendingSaveData, setPendingSaveData] = useState<Client | null>(null);
@@ -77,8 +79,48 @@ const ClientsPage: React.FC = () => {
         { header: 'Name', accessor: 'name' as const },
         { header: 'Site', accessor: 'siteName' as const },
         { header: 'Contact', accessor: 'contact' as const },
-        { header: 'Total Paid', accessor: 'totalPaid' as const, render: (v: number) => `₹${v?.toLocaleString() || 0}` },
-        { header: 'Balance', accessor: 'balance' as const, render: (v: number) => `₹${v?.toLocaleString() || 0}` },
+        { 
+            header: 'Total Paid', 
+            accessor: 'totalPaid' as const, 
+            render: (v: number, client: Client) => (
+                <div className="text-right">
+                    <div className="font-semibold text-green-600 dark:text-green-400">
+                        ₹{v?.toLocaleString() || 0}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {client.paymentHistory?.length || 0} transactions
+                    </div>
+                </div>
+            )
+        },
+        { 
+            header: 'Balance', 
+            accessor: 'balance' as const, 
+            render: (v: number) => (
+                <div className={`text-right font-semibold ${
+                    v > 0 ? 'text-red-600 dark:text-red-400' : 
+                    v < 0 ? 'text-green-600 dark:text-green-400' : 
+                    'text-gray-600 dark:text-gray-400'
+                }`}>
+                    ₹{v?.toLocaleString() || 0}
+                </div>
+            )
+        },
+        { 
+            header: 'Payment History', 
+            accessor: 'paymentHistory' as const, 
+            render: (v: any, client: Client) => (
+                <button
+                    onClick={() => setViewingPaymentHistory(client)}
+                    className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                    <HistoryIcon className="w-4 h-4" />
+                    <span className="text-sm">
+                        {client.paymentHistory?.length || 0} payments
+                    </span>
+                </button>
+            )
+        },
     ], []);
     
     const siteOptions = useMemo(() => sites.map(s => ({ value: s.siteName, label: s.siteName })), [sites]);
@@ -90,6 +132,16 @@ const ClientsPage: React.FC = () => {
         { name: 'totalPaid', label: 'Total Paid', type: 'number', required: true },
         { name: 'balance', label: 'Balance', type: 'number', required: true },
     ];
+
+    // Calculate summary statistics
+    const summaryStats = useMemo(() => {
+        const totalPaid = clients.reduce((sum, client) => sum + (client.totalPaid || 0), 0);
+        const totalBalance = clients.reduce((sum, client) => sum + (client.balance || 0), 0);
+        const totalTransactions = clients.reduce((sum, client) => sum + (client.paymentHistory?.length || 0), 0);
+        const activeClients = clients.filter(client => (client.paymentHistory?.length || 0) > 0).length;
+        
+        return { totalPaid, totalBalance, totalTransactions, activeClients };
+    }, [clients]);
 
     const renderContent = () => {
         if (connectionStatus === 'loading') return <p className="text-center py-8 text-gray-400">Loading clients...</p>;
@@ -106,6 +158,34 @@ const ClientsPage: React.FC = () => {
         }
         return (
             <>
+                {/* Summary Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Total Received</div>
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            ₹{summaryStats.totalPaid.toLocaleString()}
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Total Balance</div>
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            ₹{summaryStats.totalBalance.toLocaleString()}
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</div>
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {summaryStats.totalTransactions}
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Active Clients</div>
+                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                            {summaryStats.activeClients} / {clients.length}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex justify-end mb-6">
                     <button onClick={() => { setEditingClient(null); setModalOpen(true); }} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
                         <PlusIcon className="w-5 h-5" />
@@ -152,6 +232,14 @@ const ClientsPage: React.FC = () => {
                 }
                 confirmText="Confirm & Save"
                 confirmButtonClass="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-800"
+            />
+            
+            <PaymentHistoryModal
+                isOpen={!!viewingPaymentHistory}
+                onClose={() => setViewingPaymentHistory(null)}
+                title={`Payment History - ${viewingPaymentHistory?.name || ''}`}
+                paymentHistory={viewingPaymentHistory?.paymentHistory || []}
+                totalPaid={viewingPaymentHistory?.totalPaid || 0}
             />
         </div>
     );

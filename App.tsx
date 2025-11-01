@@ -6,6 +6,8 @@ import ClientsPage from './pages/ClientsPage';
 import SitesPage from './pages/SitesPage';
 import TasksPage from './pages/TasksPage';
 import ChatPage from './pages/ChatPage';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import OfflineIndicator from './components/OfflineIndicator';
 
 // Enhanced Payments Page Component
 const PaymentsPage: React.FC = () => {
@@ -234,6 +236,7 @@ const PaymentsPage: React.FC = () => {
                   <th className="text-left py-3 px-4 font-medium">Site</th>
                   <th className="text-left py-3 px-4 font-medium">Amount</th>
                   <th className="text-left py-3 px-4 font-medium">Mode</th>
+                  <th className="text-left py-3 px-4 font-medium">User</th>
                   <th className="text-left py-3 px-4 font-medium">Remarks</th>
                 </tr>
               </thead>
@@ -249,6 +252,17 @@ const PaymentsPage: React.FC = () => {
                           'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                         }`}>
                         {payment.mode}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        payment.user === 'Rohit' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                        payment.user === 'Gulshan' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                      }`}>
+                        {payment.user === 'Rohit' ? '👨‍💼 Rohit' : 
+                         payment.user === 'Gulshan' ? '👨‍💻 Gulshan' : 
+                         payment.user || 'Unknown'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400 max-w-xs truncate">
@@ -643,6 +657,7 @@ const ExpensesPage: React.FC = () => {
                   <th className="text-left py-3 px-4 font-medium">Category</th>
                   <th className="text-left py-3 px-4 font-medium">Amount</th>
                   <th className="text-left py-3 px-4 font-medium">Description</th>
+                  <th className="text-left py-3 px-4 font-medium">User</th>
                   <th className="text-left py-3 px-4 font-medium">Site</th>
                 </tr>
               </thead>
@@ -665,6 +680,17 @@ const ExpensesPage: React.FC = () => {
                       <div className="truncate" title={expense.description}>
                         {expense.description.replace(/ @ .+$/, '')}
                       </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        expense.user === 'Rohit' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                        expense.user === 'Gulshan' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                      }`}>
+                        {expense.user === 'Rohit' ? '👨‍💼 Rohit' : 
+                         expense.user === 'Gulshan' ? '👨‍💻 Gulshan' : 
+                         expense.user || 'Unknown'}
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                       {expense.description.match(/ @ (.+)$/)?.[1] || 'General'}
@@ -825,19 +851,16 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Simple loading check - temporarily disabled for debugging
-  if (!settings || !data) {
-    console.log('Loading state:', { settings: !!settings, data: !!data });
+  // Show loading only if contexts are completely missing (not just empty)
+  if (settings === undefined || data === undefined) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white flex items-center justify-center">
         <div className="text-center p-8">
           <h1 className="text-2xl font-bold mb-4">Loading ExpenseMan...</h1>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-sm text-gray-500">
-            Settings: {settings ? '✓' : '✗'} | Data: {data ? '✓' : '✗'}
+            Initializing contexts...
           </p>
-          {!settings && <p className="text-xs text-red-500 mt-2">Settings context not loaded</p>}
-          {!data && <p className="text-xs text-red-500 mt-2">Data context not loaded</p>}
         </div>
       </div>
     );
@@ -965,6 +988,9 @@ const AppContent: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-auto relative">
+        <PWAInstallPrompt />
+        <OfflineIndicator />
+        
         {/* Mobile Header with Hamburger Menu */}
         {isMobile && (
           <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
@@ -1051,6 +1077,83 @@ const AppContent: React.FC = () => {
                       <span className="text-gray-600 dark:text-gray-400">Active Sites: </span>
                       <span className="font-medium">{data?.sites?.length || 0} projects</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* User Balances - Shows individual balances for Rohit and Gulshan */}
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold mb-4">👥 User Balances</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(data?.userBalances || []).map((userBalance) => (
+                      <div key={userBalance.user} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border-l-4 border-blue-500">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-lg font-semibold text-gray-800 dark:text-white">
+                            {userBalance.user === 'Rohit' ? '👨‍💼' : userBalance.user === 'Gulshan' ? '👨‍💻' : '👤'} {userBalance.user}
+                          </h4>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {userBalance.transactionCount} transactions
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Total Payments:</span>
+                            <span className="font-semibold text-green-600">
+                              ₹{userBalance.totalPayments.toLocaleString()}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Total Expenses:</span>
+                            <span className="font-semibold text-red-600">
+                              ₹{userBalance.totalExpenses.toLocaleString()}
+                            </span>
+                          </div>
+                          
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-base font-medium text-gray-800 dark:text-white">Net Balance:</span>
+                              <span className={`text-xl font-bold ${
+                                userBalance.balance >= 0 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
+                                {userBalance.balance >= 0 ? '+' : ''}₹{userBalance.balance.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Progress bar showing payment vs expense ratio */}
+                          <div className="mt-4">
+                            <div className="flex justify-between text-xs text-gray-500 mb-1">
+                              <span>Payments</span>
+                              <span>Expenses</span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-green-500 to-red-500 h-2 rounded-full transition-all duration-300"
+                                style={{ 
+                                  width: '100%',
+                                  background: userBalance.totalPayments + userBalance.totalExpenses > 0 
+                                    ? `linear-gradient(to right, #10b981 0%, #10b981 ${(userBalance.totalPayments / (userBalance.totalPayments + userBalance.totalExpenses)) * 100}%, #ef4444 ${(userBalance.totalPayments / (userBalance.totalPayments + userBalance.totalExpenses)) * 100}%, #ef4444 100%)`
+                                    : '#9ca3af'
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Show message if no user data */}
+                    {(!data?.userBalances || data.userBalances.length === 0) && (
+                      <div className="col-span-full bg-gray-50 dark:bg-gray-800 p-8 rounded-lg text-center">
+                        <p className="text-gray-500 dark:text-gray-400 mb-2">No user balance data available</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500">
+                          Make sure your Google Sheet has user information in column I (9th column)
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1168,18 +1271,19 @@ const AppContent: React.FC = () => {
                     {(data?.expenses?.length || 0) > 0 ? (
                       <div className="space-y-4">
                         {(() => {
-                          const categoryTotals = (data?.expenses || []).reduce((acc, expense) => {
-                            acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+                          const categoryTotals = (data?.expenses || []).reduce((acc: Record<string, number>, expense: any) => {
+                            const currentAmount = acc[expense.category] as number || 0;
+                            acc[expense.category] = currentAmount + (expense.amount as number);
                             return acc;
                           }, {} as Record<string, number>);
 
-                          const totalExpenses = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0);
+                          const totalExpenses: number = (Object.values(categoryTotals) as number[]).reduce((sum: number, amount: number) => sum + amount, 0);
                           const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
 
                           return Object.entries(categoryTotals)
-                            .sort(([, a], [, b]) => b - a)
+                            .sort(([, a], [, b]) => (b as number) - (a as number))
                             .map(([category, amount], index) => {
-                              const percentage = ((amount / totalExpenses) * 100).toFixed(1);
+                              const percentage = (((amount as number) / totalExpenses) * 100).toFixed(1);
                               return (
                                 <div key={category} className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
@@ -1187,7 +1291,7 @@ const AppContent: React.FC = () => {
                                     <span className="font-medium">{category}</span>
                                   </div>
                                   <div className="text-right">
-                                    <p className="font-bold">₹{amount.toLocaleString()}</p>
+                                    <p className="font-bold">₹{(amount as number).toLocaleString()}</p>
                                     <p className="text-sm text-gray-500">{percentage}%</p>
                                   </div>
                                 </div>
@@ -1245,18 +1349,18 @@ const AppContent: React.FC = () => {
                             siteExpenses['General'] = generalExpenses;
                           }
 
-                          const maxAmount = Math.max(...Object.values(siteExpenses));
+                          const maxAmount = Math.max(...Object.values(siteExpenses).map(v => v as number));
 
                           return Object.entries(siteExpenses)
-                            .sort(([, a], [, b]) => b - a)
+                            .sort(([, a], [, b]) => (b as number) - (a as number))
                             .slice(0, 8) // Show top 8 sites
                             .map(([siteName, amount]) => {
-                              const percentage = maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
+                              const percentage = maxAmount > 0 ? ((amount as number) / maxAmount) * 100 : 0;
                               return (
                                 <div key={siteName} className="space-y-2">
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium text-sm">{siteName}</span>
-                                    <span className="font-bold text-sm">₹{amount.toLocaleString()}</span>
+                                    <span className="font-bold text-sm">₹{(amount as number).toLocaleString()}</span>
                                   </div>
                                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                     <div
@@ -1394,236 +1498,5 @@ const App: React.FC = () => {
     </SettingsProvider>
   );
 };
-
-export default App;
-import React, { useState, useContext } from 'react';
-import type { Page } from './types';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import Dashboard from './pages/Dashboard';
-import ChatInterface from './components/ChatInterface';
-import PaymentsAndExpensesPage from './pages/PaymentsAndExpensesPage';
-import SitesPage from './pages/SitesPage';
-import LabourPage from './pages/LabourPage';
-import ClientsPage from './pages/ClientsPage';
-import TasksAndHabitsPage from './pages/TasksAndHabitsPage';
-import SettingsPage from './pages/SettingsPage';
-import { DataProvider } from './contexts/DataContext';
-import { SettingsProvider, SettingsContext } from './contexts/SettingsContext';
-import {
-  DashboardIcon,
-  WalletIcon,
-  BuildingIcon,
-  ChecklistIcon,
-  BrainCircuitIcon,
-  HandshakeIcon,
-  MoreVerticalIcon,
-  UsersIcon,
-  SettingsIcon,
-} from './components/icons';
-
-// --- More Menu for mobile ---
-const moreMenuItems: { page: Page; icon: React.FC<React.SVGProps<SVGSVGElement>>; label: string }[] = [
-  { page: 'Payments & Expenses', icon: WalletIcon, label: 'Payments' },
-  { page: 'Clients', icon: HandshakeIcon, label: 'Clients' },
-  { page: 'Sites', icon: BuildingIcon, label: 'Sites' },
-  { page: 'Labour', icon: UsersIcon, label: 'Labour' },
-  { page: 'Tasks & Habits', icon: ChecklistIcon, label: 'Tasks' },
-  { page: 'Settings', icon: SettingsIcon, label: 'Settings' },
-];
-
-interface MoreMenuProps {
-  isOpen: boolean;
-  onClose: () => void;
-  setActivePage: (page: Page) => void;
-}
-
-const MoreMenu: React.FC<MoreMenuProps> = ({ isOpen, onClose, setActivePage }) => {
-  const handleSelect = (page: Page) => {
-    setActivePage(page);
-    onClose();
-  };
-
-  return (
-    <>
-      {/* Overlay */}
-      <div 
-        className={`fixed inset-0 bg-black/60 z-50 md:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
-        onClick={onClose} 
-        aria-hidden="true"
-      ></div>
-      
-      {/* Menu Panel */}
-      <div 
-        className={`fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 rounded-t-2xl shadow-2xl z-50 md:hidden transition-transform duration-300 ease-in-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
-      >
-        {/* Grab Handle */}
-        <div className="w-10 h-1.5 bg-gray-600 rounded-full mx-auto my-3"></div>
-
-        {/* Grid Layout for Menu Items */}
-        <ul className="grid grid-cols-3 gap-2 p-4 pb-6">
-          {moreMenuItems.map(item => (
-            <li key={item.page}>
-              <button
-                onClick={() => handleSelect(item.page)}
-                className="w-full flex flex-col items-center justify-center p-3 rounded-xl text-center text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-150 space-y-2"
-              >
-                <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center">
-                    <item.icon className="w-6 h-6 text-gray-400" />
-                </div>
-                <span className="font-medium text-xs text-center">{item.label}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
-  );
-};
-
-
-// --- BottomNav for mobile view ---
-const mainBottomNavItems: { page: Page | 'More'; icon: React.FC<React.SVGProps<SVGSVGElement>>; label: string }[] = [
-  { page: 'Dashboard', icon: DashboardIcon, label: 'Dashboard' },
-  { page: 'Chat with AI', icon: BrainCircuitIcon, label: 'AI Chat' },
-  { page: 'More', icon: MoreVerticalIcon, label: 'More' },
-];
-
-interface BottomNavProps {
-  activePage: Page;
-  setActivePage: (page: Page) => void;
-}
-
-const BottomNavLink: React.FC<{
-  icon: React.FC<React.SVGProps<SVGSVGElement>>;
-  label: string;
-  isActive: boolean;
-  onClick: () => void;
-}> = ({ icon: Icon, label, isActive, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${
-      isActive ? 'text-blue-400' : 'text-gray-400 hover:text-blue-400'
-    }`}
-  >
-    <Icon className="w-6 h-6 mb-1" />
-    <span className={`text-xs ${isActive ? 'font-bold' : ''}`}>{label}</span>
-  </button>
-);
-
-const BottomNav: React.FC<BottomNavProps> = ({ activePage, setActivePage }) => {
-  const [isMoreMenuOpen, setMoreMenuOpen] = useState(false);
-
-  // A page is "active" in the more menu if it's the current page
-  const isMoreActive = moreMenuItems.some(item => item.page === activePage);
-
-  return (
-    <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-800/95 backdrop-blur-sm border-t border-gray-700 flex justify-around z-40">
-        {mainBottomNavItems.map((item) => {
-           if (item.page === 'More') {
-            return (
-              <BottomNavLink
-                key={item.page}
-                icon={item.icon}
-                label={item.label}
-                isActive={isMoreActive}
-                onClick={() => setMoreMenuOpen(true)}
-              />
-            );
-          }
-          return (
-            <BottomNavLink
-              key={item.page}
-              icon={item.icon}
-              label={item.label}
-              isActive={activePage === item.page}
-              onClick={() => setActivePage(item.page as Page)}
-            />
-          );
-        })}
-      </nav>
-      <MoreMenu
-        isOpen={isMoreMenuOpen}
-        onClose={() => setMoreMenuOpen(false)}
-        setActivePage={setActivePage}
-      />
-    </>
-  );
-};
-// --- End of BottomNav ---
-
-const AppContent: React.FC = () => {
-  const [activePage, setActivePage] = useState<Page>('Dashboard');
-  const { theme } = useContext(SettingsContext);
-
-  const pageTitles: Record<Page, string> = {
-    'Dashboard': 'Dashboard',
-    'Payments & Expenses': 'Financial Management',
-    'Sites': 'Site Management',
-    'Labour': 'Labour Management',
-    'Clients': 'Client Management',
-    'Tasks & Habits': 'Productivity Hub',
-    'Chat with AI': 'PBMS-AI Assistant',
-    'Settings': 'Application Settings',
-  };
-
-  const handleSetPage = (page: Page) => {
-    setActivePage(page);
-  };
-
-  const renderPage = () => {
-    switch (activePage) {
-      case 'Dashboard':
-        return <Dashboard />;
-      case 'Payments & Expenses':
-        return <PaymentsAndExpensesPage />;
-      case 'Sites':
-        return <SitesPage />;
-      case 'Labour':
-        return <LabourPage />;
-      case 'Clients':
-        return <ClientsPage />;
-       case 'Tasks & Habits':
-        return <TasksAndHabitsPage />;
-      case 'Chat with AI':
-        // This case is handled by the special layout below
-        return null;
-      case 'Settings':
-        return <SettingsPage />;
-      default:
-        return <Dashboard />;
-    }
-  };
-  
-  return (
-    <div className="text-gray-800 dark:text-white font-sans min-h-screen md:flex">
-      <Sidebar activePage={activePage} setActivePage={handleSetPage} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header title={pageTitles[activePage]} />
-        <main className="flex-1 overflow-y-auto">
-          {activePage === 'Chat with AI' ? (
-             <div className="h-full bg-gray-200 dark:bg-gray-800 md:rounded-tl-2xl md:border-t md:border-l border-gray-200 dark:border-gray-700">
-               <ChatInterface />
-            </div>
-          ) : (
-            <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 pb-24">
-              {renderPage()}
-            </div>
-          )}
-        </main>
-      </div>
-      <BottomNav activePage={activePage} setActivePage={handleSetPage} />
-    </div>
-  );
-};
-
-const App: React.FC = () => (
-  <SettingsProvider>
-    <DataProvider>
-      <AppContent />
-    </DataProvider>
-  </SettingsProvider>
-);
 
 export default App;

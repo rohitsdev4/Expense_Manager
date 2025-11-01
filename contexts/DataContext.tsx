@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
-import type { Payment, Expense, Site, Labour, Client, Task, Habit, ExpenseCategory } from '../types';
+import type { Payment, Expense, Site, Labour, Client, Task, Habit, ExpenseCategory, UserBalance, PaymentHistory } from '../types';
 import * as api from '../services/mockApiService';
 import { SettingsContext } from './SettingsContext';
 
@@ -15,6 +15,7 @@ interface DataContextState {
   tasks: Task[];
   habits: Habit[];
   expenseCategories: ExpenseCategory[];
+  userBalances: UserBalance[];
   connectionStatus: ConnectionStatus;
   lastSync: Date | null;
   error: string | null;
@@ -22,6 +23,7 @@ interface DataContextState {
 
 interface DataContextType extends DataContextState {
   refreshData: () => void;
+  testConnection: () => Promise<{ success: boolean; message: string }>;
   addPayment: (data: Omit<Payment, 'id'>) => Promise<void>;
   updatePayment: (id: string, updates: Partial<Payment>) => Promise<void>;
   deletePayment: (id: string) => Promise<void>;
@@ -54,11 +56,64 @@ interface DataContextType extends DataContextState {
 
 export const DataContext = createContext<DataContextType>({} as DataContextType);
 
+// Test connection function
+const testGoogleSheetsConnection = async (googleSheetUrl: string, apiKey: string): Promise<{ success: boolean; message: string }> => {
+  if (!googleSheetUrl || !apiKey) {
+    return { success: false, message: 'Please provide both Google Sheet URL and API key' };
+  }
+
+  const sheetIdMatch = googleSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!sheetIdMatch) {
+    return { success: false, message: 'Invalid Google Sheets URL format' };
+  }
+
+  const sheetId = sheetIdMatch[1];
+
+  try {
+    // Test basic spreadsheet access
+    const testUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?key=${apiKey}`;
+    const response = await fetch(testUrl);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      if (response.status === 403) {
+        return { success: false, message: 'API key is invalid or Google Sheets API is not enabled' };
+      } else if (response.status === 404) {
+        return { success: false, message: 'Spreadsheet not found. Check URL and sharing permissions' };
+      } else {
+        return { success: false, message: errorData.error?.message || `HTTP ${response.status}` };
+      }
+    }
+
+    const data = await response.json();
+    const sheetNames = data.sheets?.map((sheet: any) => sheet.properties.title) || [];
+    
+    // Check for required sheets
+    const requiredSheets = ['Main', 'Labour', 'Parties', 'Sites'];
+    const missingSheets = requiredSheets.filter(sheet => !sheetNames.includes(sheet));
+    
+    if (missingSheets.length > 0) {
+      return { 
+        success: false, 
+        message: `Missing required sheets: ${missingSheets.join(', ')}. Found sheets: ${sheetNames.join(', ')}` 
+      };
+    }
+
+    return { success: true, message: `Connection successful! Found sheets: ${sheetNames.join(', ')}` };
+  } catch (error) {
+    return { success: false, message: 'Network error. Check your internet connection.' };
+  }
+};
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const settingsContext = useContext(SettingsContext);
-  const { googleSheetUrl, apiKey } = settingsContext || { googleSheetUrl: '', apiKey: '' };
+  const { googleSheetUrl, googleSheetsApiKey } = settingsContext || { googleSheetUrl: '', googleSheetsApiKey: '' };
   
-  console.log('DataProvider rendering...', { settingsContext });
+  console.log('🔄 DataProvider rendering...', { 
+    googleSheetUrl: googleSheetUrl ? googleSheetUrl.substring(0, 50) + '...' : 'empty',
+    googleSheetsApiKey: googleSheetsApiKey ? googleSheetsApiKey.substring(0, 10) + '...' : 'empty',
+    settingsContext 
+  });
   
   const [state, setState] = useState<DataContextState>({
     payments: [],
@@ -70,55 +125,138 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     tasks: [],
     habits: [],
     expenseCategories: [],
+    userBalances: [],
     connectionStatus: 'idle',
     lastSync: null,
     error: null,
   });
 
-  const fetchData = useCallback(async () => {
+  // Load tasks and habits from localStorage on initialization
+  useEffect(() => {
+    const loadLocalData = async () => {
+      try {
+        const [tasks, habits] = await Promise.all([
+          api.tasksApi.get(),
+          api.habitsApi.get()
+        ]);
+        setState(s => ({ ...s, tasks, habits }));
+      } catch (error) {
+        console.error('Failed to load local data:', error);
+      }
+    };
+    loadLocalData();
+  }, []);
 
-    if (!googleSheetUrl || !apiKey) {
+  const fetchData = useCallback(async () => {
+    if (!googleSheetUrl || !googleSheetsApiKey) {
         console.log('⚠️ No credentials configured');
-        setState(s => ({ ...s, connectionStatus: 'idle', error: "Configure Google Sheet in Settings" }));
+        setState(s => ({ 
+            ...s, 
+            connectionStatus: 'idle', 
+            error: "Please configure Google Sheets URL and API key in Settings. You need a Google Sheets API key (separate from AI API key)." 
+        }));
         return;
     }
 
     console.log('🔄 Starting data fetch...');
     setState(s => ({ ...s, connectionStatus: 'loading', error: null }));
 
+    // Extract sheet ID from various Google Sheets URL formats
     const sheetIdMatch = googleSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (!sheetIdMatch) {
         console.error('❌ Invalid Sheet URL');
-        setState(s => ({ ...s, connectionStatus: 'error', error: "Invalid Sheet URL" }));
+        setState(s => ({ 
+            ...s, 
+            connectionStatus: 'error', 
+            error: "Invalid Google Sheets URL format. Please use the full URL from your browser." 
+        }));
         return;
     }
     
     const sheetId = sheetIdMatch[1];
     console.log('✅ Sheet ID:', sheetId);
 
+    // Test API key first with a simple request
+    try {
+        const testUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?key=${googleSheetsApiKey}`;
+        const testResponse = await fetch(testUrl);
+        
+        if (!testResponse.ok) {
+            const errorData = await testResponse.json();
+            console.error('❌ API Key Test Failed:', errorData);
+            
+            let errorMessage = 'Google Sheets API connection failed. ';
+            if (testResponse.status === 403) {
+                errorMessage += 'API key is invalid or Google Sheets API is not enabled. Please check your API key and ensure Google Sheets API is enabled in Google Cloud Console.';
+            } else if (testResponse.status === 404) {
+                errorMessage += 'Spreadsheet not found or not accessible. Please check the URL and sharing permissions.';
+            } else {
+                errorMessage += `Error: ${errorData.error?.message || `HTTP ${testResponse.status}`}`;
+            }
+            
+            setState(s => ({ ...s, connectionStatus: 'error', error: errorMessage }));
+            return;
+        }
+        
+        console.log('✅ API Key test successful');
+    } catch (error) {
+        console.error('❌ Network error during API test:', error);
+        setState(s => ({ 
+            ...s, 
+            connectionStatus: 'error', 
+            error: 'Network error. Please check your internet connection.' 
+        }));
+        return;
+    }
+
     try {
         // Fetch multiple sheets: Main, Labour, Parties, Sites
         const sheets = ['Main', 'Labour', 'Parties', 'Sites'];
         const fetchPromises = sheets.map(async (sheetName) => {
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}!A1:J1000?key=${apiKey}`;
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}!A1:J1000?key=${googleSheetsApiKey}`;
             console.log(`📡 Fetching ${sheetName}:`, url);
             
             try {
                 const response = await fetch(url);
+                console.log(`📡 Response for ${sheetName}:`, response.status, response.statusText);
+                
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`${sheetName}: ${errorData.error?.message || 'Fetch failed'}`);
+                    console.error(`❌ API Error for ${sheetName}:`, errorData);
+                    
+                    // Provide specific error messages
+                    if (response.status === 403) {
+                        throw new Error(`${sheetName}: API key invalid or Google Sheets API not enabled`);
+                    } else if (response.status === 404) {
+                        throw new Error(`${sheetName}: Sheet not found or not accessible`);
+                    } else {
+                        throw new Error(`${sheetName}: ${errorData.error?.message || `HTTP ${response.status}`}`);
+                    }
                 }
+                
                 const data = await response.json();
+                console.log(`✅ Data received for ${sheetName}:`, data.values?.length || 0, 'rows');
                 return { sheetName, data: data.values || [] };
             } catch (error) {
-                console.warn(`⚠️ Failed to fetch ${sheetName}:`, error);
-                return { sheetName, data: [] };
+                console.error(`❌ Failed to fetch ${sheetName}:`, error);
+                return { sheetName, data: [], error: error instanceof Error ? error.message : 'Unknown error' };
             }
         });
 
         const results = await Promise.all(fetchPromises);
         console.log('✅ All data received:', results);
+
+        // Check for errors in any sheet fetch
+        const errors = results.filter(r => (r as any).error).map(r => (r as any).error);
+        if (errors.length > 0) {
+            console.error('❌ Sheet fetch errors:', errors);
+            setState(s => ({ 
+                ...s, 
+                connectionStatus: 'error', 
+                error: `Failed to fetch sheets: ${errors.join(', ')}` 
+            }));
+            return;
+        }
 
         // Initialize arrays
         const payments: Payment[] = [];
@@ -127,6 +265,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const clients: Client[] = [];
         const sites: Site[] = [];
         const categories = new Set<string>();
+        
+        // Payment history tracking
+        const clientPaymentHistory = new Map<string, PaymentHistory[]>();
+        const labourPaymentHistory = new Map<string, PaymentHistory[]>();
 
         // Process each sheet
         results.forEach(({ sheetName, data }) => {
@@ -151,10 +293,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         description: row[4] || '',
                         labour: row[5] || '',
                         site: row[6] || '',
-                        party: row[7] || ''
+                        party: row[7] || '',
+                        user: row[8] || '' // Extract user from column I (index 8)
                     };
 
                     if (entry.category) categories.add(entry.category);
+
+                    // Determine user if not explicitly provided
+                    let user = entry.user;
+                    if (!user) {
+                        // Try to extract user from description or other fields
+                        const description = entry.description.toLowerCase();
+                        if (description.includes('rohit') || description.includes('r.')) {
+                            user = 'Rohit';
+                        } else if (description.includes('gulshan') || description.includes('g.')) {
+                            user = 'Gulshan';
+                        } else {
+                            user = 'Unknown';
+                        }
+                    }
 
                     if (entry.type.toLowerCase().includes('payment')) {
                         payments.push({
@@ -163,7 +320,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             site: entry.site || entry.party,
                             amount: entry.amount,
                             mode: 'Cash',
-                            remarks: entry.description
+                            remarks: entry.description,
+                            user: user
+                        });
+                        
+                        // Track client payment history
+                        if (entry.party) {
+                            const clientHistory: PaymentHistory = {
+                                id: entry.id,
+                                date: entry.date,
+                                amount: entry.amount,
+                                site: entry.site,
+                                description: entry.description,
+                                user: user
+                            };
+                            
+                            if (!clientPaymentHistory.has(entry.party)) {
+                                clientPaymentHistory.set(entry.party, []);
+                            }
+                            clientPaymentHistory.get(entry.party)!.push(clientHistory);
+                        }
+                    } else if (entry.category.toLowerCase().includes('labour payment')) {
+                        // Track labour payment history
+                        if (entry.labour) {
+                            const labourHistory: PaymentHistory = {
+                                id: entry.id,
+                                date: entry.date,
+                                amount: entry.amount,
+                                task: entry.description,
+                                site: entry.site,
+                                description: entry.description,
+                                user: user
+                            };
+                            
+                            if (!labourPaymentHistory.has(entry.labour)) {
+                                labourPaymentHistory.set(entry.labour, []);
+                            }
+                            labourPaymentHistory.get(entry.labour)!.push(labourHistory);
+                        }
+                        
+                        expenses.push({
+                            id: entry.id,
+                            date: entry.date,
+                            category: entry.category,
+                            amount: entry.amount,
+                            description: entry.description,
+                            user: user
                         });
                     } else {
                         expenses.push({
@@ -171,7 +373,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             date: entry.date,
                             category: entry.category,
                             amount: entry.amount,
-                            description: entry.description
+                            description: entry.description,
+                            user: user
                         });
                     }
                 });
@@ -180,13 +383,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 rows.forEach((row: any[], index: number) => {
                     if (!row || row.length === 0) return;
 
+                    const paymentHistory = labourPaymentHistory.get(row[0] || '') || [];
+                    const actualPaidAmount = paymentHistory.reduce((sum, payment) => sum + payment.amount, 0);
+                    const salaryAmount = parseFloat(row[2]) || 0;
+                    
                     const labour: Labour = {
                         id: String(index + 1),
                         name: row[0] || '',
                         role: row[1] || '',
-                        salary: parseFloat(row[2]) || 0,
-                        paid: parseFloat(row[3]) || 0,
-                        balance: (parseFloat(row[2]) || 0) - (parseFloat(row[3]) || 0)
+                        salary: salaryAmount,
+                        paid: actualPaidAmount, // Use calculated total from payment history
+                        balance: salaryAmount - actualPaidAmount, // Calculate balance from actual payments
+                        paymentHistory: paymentHistory
                     };
 
                     if (labour.name) {
@@ -198,13 +406,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 rows.forEach((row: any[], index: number) => {
                     if (!row || row.length === 0) return;
 
+                    const paymentHistory = clientPaymentHistory.get(row[0] || '') || [];
+                    const actualTotalPaid = paymentHistory.reduce((sum, payment) => sum + payment.amount, 0);
+                    
                     const client: Client = {
                         id: String(index + 1),
                         name: row[0] || '',
                         contact: row[1] || '',
                         siteName: row[2] || '',
-                        totalPaid: parseFloat(row[3]) || 0,
-                        balance: parseFloat(row[4]) || 0
+                        totalPaid: actualTotalPaid, // Use calculated total from payment history
+                        balance: parseFloat(row[4]) || 0,
+                        paymentHistory: paymentHistory
                     };
 
                     if (client.name) {
@@ -238,14 +450,77 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: cat
         }));
 
+        // Calculate user balances
+        const userBalanceMap = new Map<string, UserBalance>();
+        
+        // Initialize balances for known users
+        ['Rohit', 'Gulshan'].forEach(user => {
+            userBalanceMap.set(user, {
+                user,
+                totalPayments: 0,
+                totalExpenses: 0,
+                balance: 0,
+                transactionCount: 0
+            });
+        });
+
+        // Calculate payments by user
+        payments.forEach(payment => {
+            const user = payment.user || 'Unknown';
+            if (!userBalanceMap.has(user)) {
+                userBalanceMap.set(user, {
+                    user,
+                    totalPayments: 0,
+                    totalExpenses: 0,
+                    balance: 0,
+                    transactionCount: 0
+                });
+            }
+            const userBalance = userBalanceMap.get(user)!;
+            userBalance.totalPayments += payment.amount;
+            userBalance.transactionCount += 1;
+        });
+
+        // Calculate expenses by user
+        expenses.forEach(expense => {
+            const user = expense.user || 'Unknown';
+            if (!userBalanceMap.has(user)) {
+                userBalanceMap.set(user, {
+                    user,
+                    totalPayments: 0,
+                    totalExpenses: 0,
+                    balance: 0,
+                    transactionCount: 0
+                });
+            }
+            const userBalance = userBalanceMap.get(user)!;
+            userBalance.totalExpenses += expense.amount;
+            userBalance.transactionCount += 1;
+        });
+
+        // Calculate final balances
+        const userBalances: UserBalance[] = Array.from(userBalanceMap.values()).map(balance => ({
+            ...balance,
+            balance: balance.totalPayments - balance.totalExpenses
+        }));
+
         console.log('✅ Parsed all data:', {
             payments: payments.length,
             expenses: expenses.length,
             labours: labours.length,
             clients: clients.length,
             sites: sites.length,
-            categories: expenseCategories.length
+            categories: expenseCategories.length,
+            userBalances: userBalances.length
         });
+
+        console.log('👥 User Balances:', userBalances);
+
+        // Load current tasks and habits from localStorage to preserve them
+        const [currentTasks, currentHabits] = await Promise.all([
+          api.tasksApi.get(),
+          api.habitsApi.get()
+        ]);
 
         setState({
             payments,
@@ -254,9 +529,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             labours,
             clients,
             vendors: [], // Keep vendors separate for now
-            tasks: state.tasks, // Keep existing tasks (local only)
-            habits: state.habits, // Keep existing habits (local only)
+            tasks: currentTasks, // Keep existing tasks (local only)
+            habits: currentHabits, // Keep existing habits (local only)
             expenseCategories,
+            userBalances,
             connectionStatus: 'connected',
             lastSync: new Date(),
             error: null
@@ -279,18 +555,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             error: error instanceof Error ? error.message : 'Unknown error'
         }));
     }
-  }, [googleSheetUrl, apiKey]);
+  }, [googleSheetUrl, googleSheetsApiKey]);
 
   useEffect(() => {
-    if (googleSheetUrl && apiKey) {
+    if (googleSheetUrl && googleSheetsApiKey) {
         console.log('🚀 Auto-fetching data...');
         fetchData();
-        const interval = setInterval(fetchData, 30000);
+        // Reduce polling frequency to avoid API quota issues
+        const interval = setInterval(fetchData, 60000); // Every 1 minute instead of 30 seconds
         return () => clearInterval(interval);
     } else {
         setState(s => ({...s, connectionStatus: 'idle'}));
     }
-  }, [fetchData, googleSheetUrl, apiKey]);
+  }, [fetchData, googleSheetUrl, googleSheetsApiKey]);
 
   // Mutation handlers
   const createMutationHandlers = <T extends { id: string }>(
@@ -338,9 +615,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const testConnection = useCallback(async () => {
+    return await testGoogleSheetsConnection(googleSheetUrl, googleSheetsApiKey);
+  }, [googleSheetUrl, googleSheetsApiKey]);
+
   const value: DataContextType = {
       ...state,
       refreshData: fetchData,
+      testConnection,
       addPayment, updatePayment, deletePayment,
       addExpense, updateExpense, deleteExpense,
       addSite, updateSite, deleteSite,
