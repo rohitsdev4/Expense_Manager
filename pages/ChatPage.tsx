@@ -1,7 +1,7 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import { DataContext } from '../contexts/DataContext';
 import { SettingsContext } from '../contexts/SettingsContext';
-import { generateResponse, testApiConnection } from '../services/groqService';
+import { generateResponse, testApiConnection } from '../services/openrouterService';
 import type { Message } from '../types';
 import { SendIcon, BrainCircuitIcon, UserIcon } from '../components/icons';
 
@@ -108,9 +108,22 @@ const ChatPage: React.FC = () => {
         try {
             const context = getBusinessContext();
             
+            console.log('🔍 Chat Debug Info:', {
+                hasApiKey: !!settings?.aiApiKey,
+                apiKeyLength: settings?.aiApiKey?.length,
+                hasContext: !!context,
+                messageCount: messages.length
+            });
+            
             // Filter out the initial model message and create proper conversation history
             const conversationHistory = messages.filter(msg => msg.role === 'user' || 
                 (msg.role === 'model' && !msg.content.includes("Hello! I'm your AI assistant")));
+            
+            console.log('📝 Sending to OpenRouter:', {
+                conversationLength: conversationHistory.length,
+                userMessage: userMessage.content.substring(0, 50) + '...',
+                hasApiKey: !!settings?.aiApiKey
+            });
             
             const response = await generateResponse(
                 [...conversationHistory, userMessage],
@@ -119,6 +132,8 @@ const ChatPage: React.FC = () => {
                 settings?.aiApiKey
             );
 
+            console.log('✅ Received response:', response.substring(0, 100) + '...');
+
             const aiMessage: Message = {
                 role: 'model',
                 content: response
@@ -126,12 +141,12 @@ const ChatPage: React.FC = () => {
 
             setMessages(prev => [...prev, aiMessage]);
         } catch (error) {
-            console.error('Chat error:', error);
+            console.error('❌ Chat error:', error);
             
-            // The error handling is now done in the geminiService, so we just display the returned error message
+            // Enhanced error handling for OpenRouter service
             const errorMessage: Message = {
                 role: 'model',
-                content: typeof error === 'string' ? error : 'An unexpected error occurred. Please try again.'
+                content: typeof error === 'string' ? error : `❌ **Error**: ${error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'}`
             };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
@@ -197,8 +212,8 @@ const ChatPage: React.FC = () => {
             return;
         }
 
-        if (!tempApiKey.startsWith('gsk_')) {
-            alert('Invalid API key format. Groq API keys start with "gsk_"');
+        if (!tempApiKey.startsWith('sk-or-')) {
+            alert('Invalid API key format. OpenRouter API keys start with "sk-or-"');
             return;
         }
 
@@ -218,12 +233,12 @@ const ChatPage: React.FC = () => {
             };
             setMessages(prev => [...prev, successMessage]);
         } else {
-            alert(`API Key Test Failed\n\n${testResult.message}\n\nPlease:\n1. Make sure you're using a Google AI Studio API key\n2. Check that the key is copied correctly\n3. Verify the Generative AI API is enabled`);
+            alert(`API Key Test Failed\n\n${testResult.message}\n\nPlease:\n1. Make sure you're using an OpenRouter API key\n2. Check that the key is copied correctly\n3. Verify you have credits or are using free models`);
         }
     };
 
-    const openGroqConsole = () => {
-        window.open('https://console.groq.com/keys', '_blank');
+    const openOpenRouterConsole = () => {
+        window.open('https://openrouter.ai/keys', '_blank');
     };
 
     const openApiKeyModal = () => {
@@ -332,7 +347,7 @@ const ChatPage: React.FC = () => {
                                     🤖 AI Chat Setup Required
                                 </h4>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                                    To start chatting with AI and get insights about your business data, you need to configure your Groq AI API key. Groq provides fast, free AI models perfect for business analysis!
+                                    To start chatting with AI and get insights about your business data, you need to configure your OpenRouter API key. OpenRouter provides access to many free AI models perfect for business analysis!
                                 </p>
                                 <button
                                     onClick={openApiKeyModal}
@@ -341,7 +356,7 @@ const ChatPage: React.FC = () => {
                                     🔑 Setup API Key Now
                                 </button>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                    Free to get from Groq Console • Takes 2 minutes
+                                    Free to get from OpenRouter • Takes 2 minutes
                                 </p>
                             </div>
                         </div>
@@ -434,9 +449,9 @@ const ChatPage: React.FC = () => {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     <span className="hidden sm:inline">Press Enter to send, Shift+Enter for new line. </span>
                     {!settings?.aiApiKey ? (
-                        <span className="text-red-500">🔑 API key required. <button onClick={openApiKeyModal} className="underline hover:text-red-600">Setup your free Groq API key</button> to start chatting.</span>
+                        <span className="text-red-500">🔑 API key required. <button onClick={openApiKeyModal} className="underline hover:text-red-600">Setup your free OpenRouter API key</button> to start chatting.</span>
                     ) : (
-                        <span className="text-green-500">✅ Using your configured Groq API key for fast AI responses.</span>
+                        <span className="text-green-500">✅ Using your configured OpenRouter API key for fast AI responses.</span>
                     )}
                 </p>
             </div>
@@ -447,7 +462,7 @@ const ChatPage: React.FC = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
                             <h3 className="text-lg font-semibold flex items-center gap-2">
-                                🔑 {settings?.aiApiKey ? 'Manage API Key' : 'Setup Groq AI API Key'}
+                                🔑 {settings?.aiApiKey ? 'Manage API Key' : 'Setup OpenRouter API Key'}
                             </h3>
                             <button
                                 onClick={() => {
@@ -482,28 +497,28 @@ const ChatPage: React.FC = () => {
                             {!settings?.aiApiKey && (
                                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                                     <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                                        📋 How to get your free Groq API key:
+                                        📋 How to get your free OpenRouter API key:
                                     </h4>
                                     <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-decimal list-inside">
                                         <li>Click "Get API Key" button below</li>
-                                        <li>Sign up/Login to Groq Console (it's free!)</li>
-                                        <li>Go to API Keys section</li>
-                                        <li>Click "Create API Key" and give it a name</li>
-                                        <li>Copy the generated key (starts with "gsk_")</li>
+                                        <li>Sign up/Login to OpenRouter (it's free!)</li>
+                                        <li>Go to Keys section</li>
+                                        <li>Click "Create Key" and give it a name</li>
+                                        <li>Copy the generated key (starts with "sk-or-")</li>
                                         <li>Paste it in the field below and click "Test & Save"</li>
                                     </ol>
                                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                                        ⚡ Groq offers fast, free AI models (llama-3.1, mixtral) perfect for business analysis!
+                                        ⚡ OpenRouter offers access to many free AI models (Llama 3.1, Phi-3, Gemma) perfect for business analysis!
                                     </p>
                                 </div>
                             )}
 
                             <div className="text-center">
                                 <button
-                                    onClick={openGroqConsole}
+                                    onClick={openOpenRouterConsole}
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
                                 >
-                                    🚀 Get API Key from Groq Console
+                                    🚀 Get API Key from OpenRouter
                                 </button>
                             </div>
 
@@ -515,18 +530,18 @@ const ChatPage: React.FC = () => {
                                     type="password"
                                     value={tempApiKey}
                                     onChange={(e) => setTempApiKey(e.target.value)}
-                                    placeholder="gsk_..."
+                                    placeholder="sk-or-..."
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm font-mono"
                                 />
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Groq API keys start with "gsk_" and are about 56 characters long
+                                    OpenRouter API keys start with "sk-or-" and are about 64 characters long
                                 </p>
                             </div>
 
                             <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                 <p className="text-xs text-yellow-800 dark:text-yellow-200">
                                     <strong>🔒 Privacy:</strong> Your API key is stored locally in your browser and never sent to our servers. 
-                                    It's only used to communicate directly with Google's AI services.
+                                    It's only used to communicate directly with OpenRouter's AI services.
                                 </p>
                             </div>
                         </div>

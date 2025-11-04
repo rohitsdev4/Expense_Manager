@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import type { Message } from '../types';
-import { generateResponse } from '../services/geminiService';
+import { generateResponse } from '../services/openrouterService';
 import { DataContext } from '../contexts/DataContext';
 import { SettingsContext } from '../contexts/SettingsContext';
 import ChatMessage from './ChatMessage';

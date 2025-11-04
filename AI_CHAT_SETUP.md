@@ -2,11 +2,11 @@
 
 ## 🤖 Getting "No Available Models" Error?
 
-This error means you need to set up your own Groq API key. Here's how to fix it:
+This error means you need to set up your own OpenRouter API key. Here's how to fix it:
 
-### Step 1: Get a Free Groq API Key
+### Step 1: Get a Free OpenRouter API Key
 
-1. Go to [Groq Console](https://console.groq.com/keys)
+1. Go to [OpenRouter Keys](https://openrouter.ai/keys)
 2. Sign up for a free account (no credit card required)
 3. Click "Create API Key"
 4. Give it a name like "ExpenseMan Chat"
@@ -28,9 +28,9 @@ Once your API key is configured, you can:
 - Analyze profit trends
 - Compare user balances (Rohit vs Gulshan)
 
-## 🆓 Why Groq?
+## 🆓 Why OpenRouter?
 
-- **Fast**: Lightning-fast AI responses
+- **Free Models**: Access to many free AI models
 - **Free**: Generous free tier with no credit card required
 - **Powerful**: Access to Llama 3.1, Mixtral, and other top models
 - **Privacy**: Your data stays secure - API key stored locally
@@ -44,7 +44,7 @@ Once your API key is configured, you can:
 
 ### "Rate Limit Exceeded" Error
 - Wait a moment and try again
-- Groq has generous free limits, but they do exist
+- OpenRouter has generous free limits, but they do exist
 - Consider upgrading if you need higher limits
 
 ### "No Models Available" Error
@@ -65,7 +65,7 @@ Once connected, the AI has access to:
 
 - Your API key is stored locally in your browser
 - No data is sent to our servers
-- Direct communication between your browser and Groq
+- Direct communication between your browser and OpenRouter
 - Your business data remains private and secure
 
 ---

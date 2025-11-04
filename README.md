@@ -51,7 +51,7 @@ A comprehensive React-based business management application with Google Sheets i
 - **Works without internet connection**
 
 ### 🤖 **AI Assistant**
-- Gemini AI integration for business insights
+- OpenRouter AI integration for business insights
 - Context-aware responses using real business data
 - Thinking mode for complex analysis
 - Natural language queries about business performance

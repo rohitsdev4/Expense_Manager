@@ -107,5 +107,5 @@ export interface Settings {
     googleSheetUrl: string;
     userName: string;
     googleSheetsApiKey: string;  // For Google Sheets API
-    aiApiKey: string;            // For AI Chat (Groq API)
+    aiApiKey: string;            // For AI Chat (OpenRouter API)
 }

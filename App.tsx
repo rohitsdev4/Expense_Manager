@@ -1436,7 +1436,7 @@ const AppContent: React.FC = () => {
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       This API key is used for both Google Sheets data sync and AI Chat functionality.
                       A fallback key is provided for AI Chat, but you'll need your own key for Google Sheets access.
-                      Create a key in Google Cloud Console and enable Google Sheets API and Gemini API.
+                      Create a key in Google Cloud Console and enable Google Sheets API.
                     </p>
                   </div>
                   <div>

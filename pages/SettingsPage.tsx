@@ -282,7 +282,7 @@ const SettingsPage: React.FC = () => {
                     <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
                         <h3 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">AI Chat Setup</h3>
                         <ol className="text-sm text-purple-700 dark:text-purple-300 space-y-1 list-decimal list-inside">
-                            <li>Go to <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="underline">Groq Console</a></li>
+                            <li>Go to <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline">OpenRouter Keys</a></li>
                             <li>Create a free account (no credit card required)</li>
                             <li>Generate an API key</li>
                             <li>Copy and paste it below</li>
@@ -292,14 +292,14 @@ const SettingsPage: React.FC = () => {
 
                     <InputField 
                         id="aiApiKey" 
-                        label="AI API Key (Groq)"
+                        label="AI API Key (OpenRouter)"
                         type="password"
                         value={currentSettings.aiApiKey}
                         onChange={handleChange}
-                        placeholder="gsk_... (Groq API key for AI chat)"
+                        placeholder="sk-or-... (OpenRouter API key for AI chat)"
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        This is for AI chat functionality. Get a free API key from Groq Console. This is separate from Google Sheets API key.
+                        This is for AI chat functionality. Get a free API key from OpenRouter. This is separate from Google Sheets API key.
                     </p>
                 </div>
             </SettingsCard>
